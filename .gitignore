@@ -1,0 +1,7 @@
+node_modules/
+backend/.env
+backend/firebase-service-account.json
+backend/db/trips.db
+*.log
+.DS_Store
+Thumbs.db

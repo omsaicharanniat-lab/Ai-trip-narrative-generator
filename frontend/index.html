@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Trip Narrative Generator | Manivtha Tours & Travels</title>
+  <meta name="description" content="Transform trip details into captivating travel blog stories. Powered by AI for Manivtha Tours & Travels, Hyderabad.">
+  <meta name="theme-color" content="#060c18">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- Firebase JS SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="app" class="app-shell">
+
+  <!-- ══════════════════════════════════════════════════════
+       SIDEBAR
+  ══════════════════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <div class="logo-icon">🚗</div>
+        <div class="logo-text">
+          <span class="logo-title">Manivtha</span>
+          <span class="logo-subtitle">Tours & Travels</span>
+        </div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav" role="navigation" aria-label="Main navigation">
+      <a href="#generate" class="nav-link active" data-view="generate" id="nav-generate" aria-label="Generate Story">
+        <span class="nav-icon">✨</span>
+        <span class="nav-label">Generate Story</span>
+      </a>
+      <a href="#history" class="nav-link" data-view="history" id="nav-history" aria-label="History">
+        <span class="nav-icon">📜</span>
+        <span class="nav-label">History</span>
+      </a>
+      <a href="#analytics" class="nav-link" data-view="analytics" id="nav-analytics" aria-label="Analytics">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Analytics</span>
+      </a>
+      <a href="#admin" class="nav-link" data-view="admin" id="nav-admin" aria-label="Admin Panel">
+        <span class="nav-icon">🔐</span>
+        <span class="nav-label">Admin</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-info" id="userInfo" style="display:none" aria-live="polite">
+        <div class="user-avatar" id="userAvatar">👤</div>
+        <div class="user-details">
+          <span class="user-name" id="userName"></span>
+          <button class="logout-btn" id="logoutBtn">Sign Out</button>
+        </div>
+      </div>
+      <div class="version-info">v1.0.0 &nbsp;·&nbsp; Internship 2026</div>
+    </div>
+  </aside>
+
+  <!-- ══════════════════════════════════════════════════════
+       MAIN CONTENT
+  ══════════════════════════════════════════════════════ -->
+  <main class="main-content" id="mainContent">
+
+    <!-- ─── GENERATE VIEW ─────────────────────────────────── -->
+    <div class="view active" id="view-generate">
+      <!-- Hero -->
+      <section class="hero-section" aria-label="Page hero">
+        <div class="hero-content">
+          <div class="hero-badge">✨ AI-Powered Storytelling</div>
+          <h1 class="hero-title">
+            Turn Every Trip Into a<br>
+            <span class="gradient-text">Compelling Story</span>
+          </h1>
+          <p class="hero-subtitle">
+            Input route details and let AI craft an engaging travel narrative for your blog and social media — in seconds.
+          </p>
+        </div>
+      </section>
+
+      <!-- Input Form -->
+      <section class="form-section" aria-label="Trip input form">
+        <div class="glass-card">
+          <h2 class="section-title">Trip Details</h2>
+          <form id="narrativeForm" class="narrative-form" novalidate>
+            <div class="form-grid">
+
+              <!-- Driver Name -->
+              <div class="input-group">
+                <input type="text" id="driverName" name="driverName" required placeholder=" " autocomplete="name" aria-required="true">
+                <label for="driverName">Driver / Staff Name</label>
+                <span class="input-icon" aria-hidden="true">👤</span>
+              </div>
+
+              <!-- Route -->
+              <div class="input-group">
+                <input type="text" id="route" name="route" required placeholder=" " aria-required="true"
+                       aria-describedby="routeHint">
+                <label for="route">Route (From → To)</label>
+                <span class="input-icon" aria-hidden="true">🗺️</span>
+              </div>
+
+              <!-- Landmarks -->
+              <div class="input-group full-width">
+                <textarea id="landmarks" name="landmarks" rows="3" placeholder=" "
+                          aria-describedby="landmarksHint"></textarea>
+                <label for="landmarks">Landmarks Visited</label>
+                <span class="input-hint" id="landmarksHint">Separate with commas (e.g., Charminar, Golconda Fort, Hussain Sagar Lake)</span>
+              </div>
+
+              <!-- Highlights -->
+              <div class="input-group full-width">
+                <textarea id="highlights" name="highlights" rows="3" placeholder=" "
+                          aria-describedby="highlightsHint"></textarea>
+                <label for="highlights">Trip Highlights</label>
+                <span class="input-hint" id="highlightsHint">What made this trip special? (e.g., Stunning sunrise, mist-covered valleys, great food stops)</span>
+              </div>
+
+              <!-- Trip Date -->
+              <div class="input-group">
+                <input type="date" id="tripDate" name="tripDate" placeholder=" ">
+                <label for="tripDate">Trip Date</label>
+                <span class="input-icon" aria-hidden="true">📅</span>
+              </div>
+
+              <!-- Vehicle Type -->
+              <div class="select-group">
+                <label class="select-label" for="vehicleType">Vehicle Type</label>
+                <select id="vehicleType" name="vehicleType">
+                  <option value="Sedan">🚗 Sedan</option>
+                  <option value="SUV">🚙 SUV</option>
+                  <option value="Innova Crysta">🚕 Innova Crysta</option>
+                  <option value="Tempo Traveller">🚐 Tempo Traveller</option>
+                  <option value="Luxury Sedan">✨ Luxury Sedan</option>
+                </select>
+              </div>
+
+              <!-- Narrative Tone -->
+              <div class="select-group">
+                <label class="select-label" for="tone">Narrative Tone</label>
+                <select id="tone" name="tone">
+                  <option value="Adventurous">⚡ Adventurous</option>
+                  <option value="Poetic">🌸 Poetic</option>
+                  <option value="Informative">📖 Informative</option>
+                  <option value="Humorous">😄 Humorous</option>
+                </select>
+              </div>
+
+            </div><!-- /.form-grid -->
+
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary btn-generate" id="generateBtn" aria-label="Generate AI narrative">
+                <span class="btn-icon" aria-hidden="true">✨</span>
+                <span class="btn-text">Generate Narrative</span>
+                <div class="btn-loader" id="generateLoader" aria-hidden="true">
+                  <div class="loader-ring"></div>
+                </div>
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- Output Section -->
+      <section class="output-section" id="outputSection" style="display:none" aria-live="polite" aria-label="Generated narrative">
+        <div class="glass-card output-card">
+          <div class="output-header">
+            <h2 class="section-title">Generated Narrative</h2>
+            <div class="output-actions">
+              <button class="btn btn-ghost" id="copyBtn" aria-label="Copy narrative to clipboard">
+                <span aria-hidden="true">📋</span> Copy
+              </button>
+              <button class="btn btn-ghost" id="downloadBtn" aria-label="Download narrative as text file">
+                <span aria-hidden="true">📥</span> Download
+              </button>
+              <button class="btn btn-ghost" id="regenerateBtn" aria-label="Regenerate with different AI response">
+                <span aria-hidden="true">🔄</span> Regenerate
+              </button>
+            </div>
+          </div>
+          <div class="output-content" id="outputContent" role="article"></div>
+
+          <!-- Rating -->
+          <div class="rating-section" id="ratingSection">
+            <h3>Rate this narrative</h3>
+            <div class="star-rating" id="starRating" role="radiogroup" aria-label="Star rating">
+              <span class="star" data-value="1" role="radio" aria-label="1 star" tabindex="0">★</span>
+              <span class="star" data-value="2" role="radio" aria-label="2 stars" tabindex="0">★</span>
+              <span class="star" data-value="3" role="radio" aria-label="3 stars" tabindex="0">★</span>
+              <span class="star" data-value="4" role="radio" aria-label="4 stars" tabindex="0">★</span>
+              <span class="star" data-value="5" role="radio" aria-label="5 stars" tabindex="0">★</span>
+            </div>
+            <input type="text" id="ratingComment" class="rating-comment-input"
+                   placeholder="Add a comment about this story (optional)..."
+                   aria-label="Rating comment">
+            <button class="btn btn-secondary btn-sm" id="submitRatingBtn" style="display:none" aria-label="Submit rating">
+              Submit Rating
+            </button>
+          </div>
+        </div>
+      </section>
+    </div><!-- /#view-generate -->
+
+    <!-- ─── HISTORY VIEW ──────────────────────────────────── -->
+    <div class="view" id="view-history">
+      <header class="page-header">
+        <h1>Generation History</h1>
+        <p>Browse and search all previously generated travel narratives.</p>
+      </header>
+
+      <div class="history-controls">
+        <div class="search-input-wrapper">
+          <input type="search" class="search-input" id="historySearch"
+                 placeholder="Search by driver, route, or title..."
+                 aria-label="Search history">
+        </div>
+        <span id="historyCount" style="font-size:13px;color:var(--text-muted);"></span>
+      </div>
+
+      <div class="history-grid" id="historyGrid" aria-live="polite">
+        <!-- Cards injected by JS -->
+      </div>
+
+      <div class="pagination" id="historyPagination"></div>
+    </div><!-- /#view-history -->
+
+    <!-- ─── ANALYTICS VIEW ────────────────────────────────── -->
+    <div class="view" id="view-analytics">
+      <header class="page-header">
+        <h1>Analytics Dashboard</h1>
+        <p>Real-time insights into narrative generation activity and quality.</p>
+      </header>
+
+      <div class="analytics-content">
+        <!-- KPI Cards -->
+        <div class="kpi-grid" id="kpiGrid">
+          <div class="kpi-card amber">
+            <div class="kpi-icon" aria-hidden="true">📝</div>
+            <div class="kpi-value" id="kpiTotal">—</div>
+            <div class="kpi-label">Total Narratives</div>
+          </div>
+          <div class="kpi-card teal">
+            <div class="kpi-icon" aria-hidden="true">⭐</div>
+            <div class="kpi-value" id="kpiRating">—</div>
+            <div class="kpi-label">Avg. Rating</div>
+          </div>
+          <div class="kpi-card purple">
+            <div class="kpi-icon" aria-hidden="true">🎭</div>
+            <div class="kpi-value" id="kpiTopTone">—</div>
+            <div class="kpi-label">Top Tone</div>
+          </div>
+          <div class="kpi-card green">
+            <div class="kpi-icon" aria-hidden="true">✅</div>
+            <div class="kpi-value" id="kpiRated">—</div>
+            <div class="kpi-label">Rated Stories</div>
+          </div>
+        </div>
+
+        <!-- Charts Row 1 -->
+        <div class="charts-grid">
+          <div class="chart-card">
+            <h3>📈 Generations Over Last 30 Days</h3>
+            <div class="chart-wrapper">
+              <canvas id="chartPerDay" aria-label="Generations per day chart"></canvas>
+            </div>
+          </div>
+          <div class="chart-card">
+            <h3>🎭 Tone Distribution</h3>
+            <div class="chart-wrapper">
+              <canvas id="chartTone" aria-label="Tone distribution chart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Row 2 -->
+        <div class="charts-grid-3">
+          <div class="chart-card">
+            <h3>⭐ Rating Distribution</h3>
+            <div class="chart-wrapper">
+              <canvas id="chartRatings" aria-label="Rating distribution chart"></canvas>
+            </div>
+          </div>
+          <div class="chart-card">
+            <h3>🗺️ Top Routes</h3>
+            <div class="chart-wrapper">
+              <canvas id="chartRoutes" aria-label="Top routes chart"></canvas>
+            </div>
+          </div>
+          <div class="chart-card">
+            <h3>👤 Most Active Staff</h3>
+            <div class="chart-wrapper">
+              <canvas id="chartDrivers" aria-label="Most active drivers chart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- High Rated Table -->
+        <div class="chart-card">
+          <h3>🏆 Recent High-Rated Narratives (4–5 ⭐)</h3>
+          <div class="data-table-wrapper" style="margin-top:16px;" id="highRatedTable">
+            <p style="padding:16px;color:var(--text-muted);font-size:14px;">Loading...</p>
+          </div>
+        </div>
+      </div>
+    </div><!-- /#view-analytics -->
+
+    <!-- ─── ADMIN VIEW ─────────────────────────────────────── -->
+    <div class="view" id="view-admin">
+      <header class="page-header">
+        <h1>Admin Panel</h1>
+        <p>Manage generation data, export records, and view all stored narratives.</p>
+      </header>
+
+      <!-- Auth Wall (shown when not logged in) -->
+      <div class="auth-wall" id="authWall">
+        <div class="auth-card">
+          <div class="auth-card-icon" aria-hidden="true">🔐</div>
+          <h2>Admin Sign In</h2>
+          <p>Sign in with your Google account or email to access the admin data viewer.</p>
+
+          <!-- Google Sign In -->
+          <button class="btn-google" id="googleSignInBtn" aria-label="Sign in with Google">
+            <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+              <path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/>
+              <path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/>
+              <path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/>
+              <path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.31z"/>
+            </svg>
+            Sign in with Google
+          </button>
+
+          <div class="auth-divider">or</div>
+
+          <!-- Email/Password Form -->
+          <form class="auth-form" id="adminLoginForm" novalidate>
+            <div class="input-group">
+              <label for="adminEmail">Email Address</label>
+              <input type="email" id="adminEmail" name="email" placeholder="admin@manivtha.com"
+                     autocomplete="email" required aria-required="true">
+            </div>
+            <div class="input-group">
+              <label for="adminPassword">Password</label>
+              <input type="password" id="adminPassword" name="password" placeholder="••••••••"
+                     autocomplete="current-password" required aria-required="true">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;" id="emailSignInBtn">
+              Sign In
+            </button>
+          </form>
+
+          <p id="authError" style="color:var(--danger);font-size:13px;margin-top:12px;display:none;"></p>
+        </div>
+      </div>
+
+      <!-- Admin Data Panel (shown after auth) -->
+      <div class="admin-content" id="adminContent" style="display:none">
+
+        <!-- Toolbar -->
+        <div class="admin-toolbar">
+          <div class="search-input-wrapper">
+            <input type="search" class="search-input" id="adminSearch"
+                   placeholder="Search by driver, route, title..."
+                   aria-label="Search records">
+          </div>
+
+          <select id="adminFilterTone" style="background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);padding:10px 14px;border-radius:var(--radius-md);font-family:inherit;font-size:13px;outline:none;cursor:pointer;" aria-label="Filter by tone">
+            <option value="">All Tones</option>
+            <option value="Adventurous">⚡ Adventurous</option>
+            <option value="Poetic">🌸 Poetic</option>
+            <option value="Informative">📖 Informative</option>
+            <option value="Humorous">😄 Humorous</option>
+          </select>
+
+          <select id="adminFilterRating" style="background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);padding:10px 14px;border-radius:var(--radius-md);font-family:inherit;font-size:13px;outline:none;cursor:pointer;" aria-label="Filter by rating">
+            <option value="">All Ratings</option>
+            <option value="5">⭐⭐⭐⭐⭐ 5 Stars</option>
+            <option value="4">⭐⭐⭐⭐ 4 Stars</option>
+            <option value="3">⭐⭐⭐ 3 Stars</option>
+            <option value="2">⭐⭐ 2 Stars</option>
+            <option value="1">⭐ 1 Star</option>
+          </select>
+
+          <button class="btn btn-secondary btn-sm" id="exportCsvBtn" aria-label="Export all data as CSV">
+            📥 Export CSV
+          </button>
+
+          <span id="adminRecordCount" style="font-size:13px;color:var(--text-muted);margin-left:auto;"></span>
+        </div>
+
+        <!-- Data Table -->
+        <div class="data-table-wrapper">
+          <table class="data-table" id="adminTable" aria-label="Generations data table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Driver / Staff</th>
+                <th>Route</th>
+                <th>Title</th>
+                <th>Tone</th>
+                <th>Vehicle</th>
+                <th>Date</th>
+                <th>Rating</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="adminTableBody">
+              <tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-muted);">Loading records...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pagination" id="adminPagination"></div>
+      </div>
+    </div><!-- /#view-admin -->
+
+  </main>
+</div>
+
+<!-- History / Admin Detail Modal -->
+<div class="modal-overlay" id="detailModal" role="dialog" aria-modal="true" aria-label="Narrative detail">
+  <div class="modal" id="detailModalContent">
+    <button class="modal-close" id="modalClose" aria-label="Close modal">✕</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<!-- Toast Notification -->
+<div class="toast" id="toast" role="status" aria-live="assertive"></div>
+
+<!-- ── JavaScript Modules ──────────────────────────────────── -->
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/generate.js"></script>
+<script src="js/history.js"></script>
+<script src="js/analytics.js"></script>
+<script src="js/admin.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
