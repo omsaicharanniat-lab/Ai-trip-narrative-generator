@@ -290,6 +290,44 @@ window.FirestoreService = (() => {
     return updateDocument('narratives', firestoreId, { rating, comment });
   }
 
+  /**
+   * Delete a narrative document.
+   */
+  async function deleteNarrative(firestoreId) {
+    return deleteDocument('narratives', firestoreId);
+  }
+
+  /**
+   * Update narrative fields (title, narrative text, etc.).
+   */
+  async function updateNarrative(firestoreId, updates) {
+    return updateDocument('narratives', firestoreId, updates);
+  }
+
+  /**
+   * Real-time listener: subscribe to all narratives for a given user.
+   * Ordered by createdAt DESC.
+   * Returns: unsubscribe function.
+   *
+   * @param {string}   userId   — Firebase UID
+   * @param {Function} callback — called with { data: [], error }
+   */
+  function listenUserNarratives(userId, callback) {
+    _assert();
+    if (!userId) {
+      callback({ data: [], error: 'No userId provided.' });
+      return () => {};
+    }
+    return firebaseDb
+      .collection('narratives')
+      .where('userId', '==', userId)
+      .orderBy('createdAt', 'desc')
+      .onSnapshot(
+        (snap) => callback({ data: snap.docs.map(_docToObj), error: null }),
+        (e)    => callback({ data: [], error: e.message })
+      );
+  }
+
   // ══════════════════════════════════════════════════════════════
   //  APP-SPECIFIC: User Profiles
   // ══════════════════════════════════════════════════════════════
@@ -332,9 +370,13 @@ window.FirestoreService = (() => {
     // Real-time
     listenDocument,
     listenCollection,
-    // App-specific
+    // App-specific narratives
     saveNarrative,
     rateNarrative,
+    deleteNarrative,
+    updateNarrative,
+    listenUserNarratives,
+    // App-specific users
     syncUserProfile,
     getUserProfile,
     // Utility

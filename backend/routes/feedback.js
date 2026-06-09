@@ -3,6 +3,25 @@ const router = express.Router();
 const db = require('../db/database');
 
 /**
+ * POST /api/feedback/link-firestore
+ * Links a Firestore document ID back to the SQLite record.
+ * Called non-blocking from the frontend after Firestore save succeeds.
+ */
+router.post('/link-firestore', (req, res) => {
+  const { sqliteId, firestoreId } = req.body;
+  if (!sqliteId || !firestoreId) {
+    return res.status(400).json({ error: 'sqliteId and firestoreId are required.' });
+  }
+  try {
+    db.updateFirestoreId(Number(sqliteId), firestoreId);
+    res.json({ success: true });
+  } catch (e) {
+    console.error('[feedback/link-firestore] Error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
  * POST /api/feedback/:id
  * Saves a star rating and optional comment for a generation.
  */

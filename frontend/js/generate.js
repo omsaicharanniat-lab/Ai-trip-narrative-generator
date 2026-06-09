@@ -127,7 +127,9 @@ window.handleGenerate = async function (overrideTone = null) {
   console.log('🚀 Generating narrative:', { driverName, route, tone, vehicleType });
 
   try {
-    const res  = await fetch(`${API_BASE}/generate`, {
+    // Use authFetch — sends Firebase ID token so backend can associate userId
+    const fetchFn = window.authFetch || fetch;
+    const res = await fetchFn(`${API_BASE}/generate`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ driverName, route, tone, vehicleType, tripDate, landmarks, highlights }),
@@ -141,7 +143,33 @@ window.handleGenerate = async function (overrideTone = null) {
 
     console.log('✅ Narrative generated:', json.id, json.title);
 
-    currentNarrativeId = json.id;
+    currentNarrativeId = json.id;   // SQLite ID
+
+    // Save to Firestore (primary store — triggers real-time history update)
+    if (window.FirestoreService && window.currentUser) {
+      const firestorePayload = {
+        ...lastFormData,
+        title:       json.title,
+        narrative:   json.narrative,
+        userId:      window.currentUser.uid,
+        sqliteId:    json.id,
+        wordCount:   json.wordCount,
+        charCount:   json.charCount,
+      };
+      FirestoreService.saveNarrative(firestorePayload).then(({ id: fsId, error: fsErr }) => {
+        if (fsErr) {
+          console.warn('[generate] Firestore save failed (non-fatal):', fsErr);
+        } else {
+          console.log('[generate] Firestore saved, id:', fsId);
+          // Link firestoreId back in SQLite (non-blocking)
+          fetch(`${API_BASE}/feedback/link-firestore`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sqliteId: json.id, firestoreId: fsId }),
+          }).catch(() => {});
+        }
+      });
+    }
 
     // Render to step 3
     renderNarrative(json);

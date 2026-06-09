@@ -54,18 +54,24 @@ window.navigateTo = function (viewName) {
   const mobileMenu = document.getElementById('mobileMenu');
   if (mobileMenu) mobileMenu.classList.add('hidden');
 
-  // Lazy-load data for each view
+  // Lazy-load data for each view — wait for auth
   switch (viewName) {
     case 'explore':   loadTrendingStories(); break;
-    case 'history':   if (typeof loadHistory === 'function')   loadHistory();   break;
+    case 'history':
+      if (typeof loadHistory === 'function')   loadHistory();
+      break;
     case 'analytics': if (typeof loadAnalytics === 'function') loadAnalytics(); break;
     case 'admin':     if (typeof initAdmin === 'function')     initAdmin();     break;
     case 'generate':
-      // Reset wizard to step 1 if coming fresh
-      if (document.getElementById('step-3')?.classList.contains('hidden') === false) {
+      if (document.getElementById('step-3') && !document.getElementById('step-3').classList.contains('hidden')) {
         if (typeof resetWizard === 'function') resetWizard();
       }
       break;
+  }
+
+  // Detach Firestore history listener when leaving history view
+  if (viewName !== 'history' && typeof unloadHistory === 'function') {
+    unloadHistory();
   }
 };
 

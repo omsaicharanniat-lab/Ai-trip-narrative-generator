@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In | Manivtha Tours</title>
+  <meta name="description" content="Sign in to Manivtha AI Trip Narrative Generator">
+  <meta name="robots" content="noindex">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Work+Sans:wght@400;500;600&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+
+  <!-- Firebase compat SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary:       #003c90;
+      --primary-container: #0f52ba;
+      --secondary-container: #fe6f42;
+      --surface:       #f7f9fb;
+      --surface-low:   #f2f4f6;
+      --on-surface:    #191c1e;
+      --on-surface-variant: #434653;
+      --outline:       #737784;
+      --outline-variant: #c3c6d5;
+      --error:         #ba1a1a;
+      --error-container: #ffdad6;
+      --primary-fixed: #d9e2ff;
+      --tertiary-fixed: #79f7e3;
+    }
+
+    body {
+      font-family: 'Work Sans', system-ui, sans-serif;
+      background: var(--surface);
+      color: var(--on-surface);
+      min-height: 100vh;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ── Left Panel: Hero ── */
+    .hero-panel {
+      flex: 1;
+      display: none;
+      position: relative;
+      overflow: hidden;
+    }
+    @media (min-width: 768px) { .hero-panel { display: block; } }
+
+    .hero-panel img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+    .hero-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(0,60,144,0.85) 0%, rgba(15,82,186,0.65) 100%);
+      display: flex; flex-direction: column;
+      justify-content: flex-end; padding: 48px;
+    }
+    .hero-brand {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 32px; font-weight: 800;
+      color: #fff; margin-bottom: 8px;
+    }
+    .hero-tagline {
+      font-size: 18px; color: rgba(255,255,255,0.85);
+      line-height: 1.6; max-width: 380px;
+    }
+    .hero-badges {
+      display: flex; gap: 12px; margin-top: 32px; flex-wrap: wrap;
+    }
+    .hero-badge {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: #fff; padding: 8px 18px;
+      border-radius: 9999px; font-size: 13px; font-weight: 600;
+      backdrop-filter: blur(8px);
+    }
+
+    /* ── Right Panel: Auth Form ── */
+    .auth-panel {
+      width: 100%; max-width: 480px;
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      padding: 40px 32px;
+      background: #fff;
+      overflow-y: auto;
+    }
+    @media (min-width: 768px) { .auth-panel { width: 480px; } }
+
+    .auth-logo {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 22px; font-weight: 800;
+      color: var(--primary); margin-bottom: 32px;
+      text-align: center;
+    }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex; width: 100%;
+      background: var(--surface-low);
+      border-radius: 12px; padding: 4px;
+      margin-bottom: 28px; gap: 4px;
+    }
+    .tab-btn {
+      flex: 1; padding: 10px;
+      border: none; border-radius: 8px;
+      background: transparent; cursor: pointer;
+      font-family: 'Work Sans', sans-serif;
+      font-size: 14px; font-weight: 600;
+      color: var(--on-surface-variant);
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: #fff;
+      color: var(--primary);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+
+    /* ── Form Panel ── */
+    .form-panel { display: none; width: 100%; }
+    .form-panel.active { display: block; }
+
+    .form-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 24px; font-weight: 700;
+      color: var(--on-surface); margin-bottom: 6px;
+    }
+    .form-subtitle {
+      font-size: 14px; color: var(--on-surface-variant);
+      margin-bottom: 24px; line-height: 1.5;
+    }
+
+    /* ── Google Button ── */
+    .google-btn {
+      width: 100%; display: flex; align-items: center; justify-content: center;
+      gap: 12px; padding: 13px 20px;
+      border: 1.5px solid var(--outline-variant);
+      border-radius: 12px; background: #fff;
+      font-family: 'Work Sans', sans-serif;
+      font-size: 15px; font-weight: 600; color: var(--on-surface);
+      cursor: pointer; transition: all 0.2s;
+      margin-bottom: 20px;
+    }
+    .google-btn:hover { background: var(--surface-low); border-color: var(--primary); }
+    .google-btn:active { transform: scale(0.98); }
+
+    /* ── Divider ── */
+    .divider {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 20px; color: var(--outline); font-size: 13px;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--outline-variant);
+    }
+
+    /* ── Fields ── */
+    .field { margin-bottom: 16px; }
+    .field label {
+      display: block; font-size: 13px; font-weight: 600;
+      color: var(--on-surface); margin-bottom: 6px;
+    }
+    .field-wrap { position: relative; }
+    .field-icon {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      font-family: 'Material Symbols Outlined'; font-size: 18px;
+      color: var(--outline); pointer-events: none;
+    }
+    .field input {
+      width: 100%; padding: 13px 14px 13px 44px;
+      border: 1.5px solid var(--outline-variant); border-radius: 12px;
+      font-family: 'Work Sans', sans-serif; font-size: 15px; color: var(--on-surface);
+      background: var(--surface-low); outline: none; transition: all 0.2s;
+    }
+    .field input:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(0,60,144,0.08); }
+    .field input.error { border-color: var(--error); }
+
+    /* ── Pwd toggle ── */
+    .pwd-toggle {
+      position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; padding: 2px;
+      color: var(--outline); font-family: 'Material Symbols Outlined'; font-size: 18px;
+    }
+    .pwd-toggle:hover { color: var(--primary); }
+
+    /* ── Submit ── */
+    .submit-btn {
+      width: 100%; padding: 14px;
+      background: var(--primary-container); color: #fff;
+      border: none; border-radius: 12px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 15px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s; margin-top: 4px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .submit-btn:hover { background: var(--primary); }
+    .submit-btn:active { transform: scale(0.98); }
+    .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    /* ── Links ── */
+    .auth-link {
+      font-size: 13px; color: var(--primary);
+      text-decoration: none; font-weight: 600;
+    }
+    .auth-link:hover { text-decoration: underline; }
+    .link-row { text-align: center; margin-top: 16px; font-size: 13px; color: var(--on-surface-variant); }
+
+    /* ── Error Alert ── */
+    .error-alert {
+      background: var(--error-container); color: var(--error);
+      border-radius: 10px; padding: 12px 16px;
+      font-size: 13px; font-weight: 500; margin-bottom: 16px;
+      display: none; align-items: center; gap: 8px;
+    }
+    .error-alert.show { display: flex; }
+
+    /* ── Success Alert ── */
+    .success-alert {
+      background: #e8f5e9; color: #1b5e20;
+      border-radius: 10px; padding: 12px 16px;
+      font-size: 13px; font-weight: 500; margin-bottom: 16px;
+      display: none; align-items: center; gap: 8px;
+    }
+    .success-alert.show { display: flex; }
+
+    /* ── Spinner ── */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Full-page loading overlay ── */
+    #authCheckOverlay {
+      position: fixed; inset: 0;
+      background: #fff;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 16px;
+      z-index: 9999;
+    }
+    .big-spinner {
+      width: 48px; height: 48px;
+      border: 4px solid var(--primary-fixed);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    #authCheckOverlay p {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 16px; color: var(--on-surface-variant);
+    }
+
+    /* ── Forgot Password panel ── */
+    #forgotPanel { display: none; width: 100%; }
+
+    /* ── Material Symbols helper ── */
+    .ms { font-family: 'Material Symbols Outlined'; font-size: 20px; vertical-align: middle; }
+  </style>
+</head>
+<body>
+
+<!-- Auth check overlay — shows while Firebase resolves session -->
+<div id="authCheckOverlay">
+  <div class="big-spinner"></div>
+  <p>Checking your session…</p>
+</div>
+
+<!-- Left hero -->
+<div class="hero-panel">
+  <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=1400&q=80"
+       alt="Travel landscape">
+  <div class="hero-overlay">
+    <div class="hero-brand">Manivtha Tours</div>
+    <p class="hero-tagline">
+      Transform your travel memories into immersive, AI-crafted narratives. Every journey, beautifully remembered.
+    </p>
+    <div class="hero-badges">
+      <span class="hero-badge">✨ Gemini AI</span>
+      <span class="hero-badge">🎙️ Voice Narration</span>
+      <span class="hero-badge">☁️ Cloud Sync</span>
+    </div>
+  </div>
+</div>
+
+<!-- Right auth form -->
+<div class="auth-panel">
+  <div class="auth-logo">Manivtha Tours</div>
+
+  <!-- Tabs: Sign In / Sign Up -->
+  <div class="tabs">
+    <button class="tab-btn active" id="tabSignIn" onclick="switchTab('signin')">Sign In</button>
+    <button class="tab-btn" id="tabSignUp" onclick="switchTab('signup')">Sign Up</button>
+  </div>
+
+  <!-- ── SIGN IN PANEL ── -->
+  <div class="form-panel active" id="panelSignIn">
+    <h1 class="form-title">Welcome back</h1>
+    <p class="form-subtitle">Sign in to access your narratives and generate new stories.</p>
+
+    <div class="error-alert" id="signinError">
+      <span class="ms">error</span>
+      <span id="signinErrorMsg">Error</span>
+    </div>
+
+    <!-- Google -->
+    <button class="google-btn" id="googleSignInBtn" onclick="handleGoogleSignIn()">
+      <svg width="20" height="20" viewBox="0 0 18 18" aria-hidden="true">
+        <path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/>
+        <path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/>
+        <path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/>
+        <path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.31z"/>
+      </svg>
+      Continue with Google
+    </button>
+
+    <div class="divider">or sign in with email</div>
+
+    <form id="signinForm" onsubmit="handleEmailSignIn(event)" novalidate>
+      <div class="field">
+        <label for="signinEmail">Email address</label>
+        <div class="field-wrap">
+          <span class="field-icon">mail</span>
+          <input type="email" id="signinEmail" placeholder="you@example.com" autocomplete="email" required>
+        </div>
+      </div>
+      <div class="field">
+        <label for="signinPassword">Password</label>
+        <div class="field-wrap">
+          <span class="field-icon">lock</span>
+          <input type="password" id="signinPassword" placeholder="••••••••" autocomplete="current-password" required>
+          <button type="button" class="pwd-toggle" onclick="togglePwd('signinPassword', this)" aria-label="Show password">visibility</button>
+        </div>
+      </div>
+      <div style="text-align:right;margin-bottom:16px;">
+        <a href="#" class="auth-link" onclick="showForgot(event)">Forgot password?</a>
+      </div>
+      <button type="submit" class="submit-btn" id="signinBtn">
+        <span id="signinBtnText">Sign In</span>
+        <div class="spinner" id="signinSpinner"></div>
+      </button>
+    </form>
+  </div>
+
+  <!-- ── SIGN UP PANEL ── -->
+  <div class="form-panel" id="panelSignUp">
+    <h2 class="form-title">Create your account</h2>
+    <p class="form-subtitle">Join Manivtha Tours and start generating AI travel stories.</p>
+
+    <div class="error-alert" id="signupError">
+      <span class="ms">error</span>
+      <span id="signupErrorMsg">Error</span>
+    </div>
+    <div class="success-alert" id="signupSuccess">
+      <span class="ms">check_circle</span>
+      <span>Account created! Check your email for a verification link.</span>
+    </div>
+
+    <button class="google-btn" onclick="handleGoogleSignIn()">
+      <svg width="20" height="20" viewBox="0 0 18 18" aria-hidden="true">
+        <path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/>
+        <path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/>
+        <path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/>
+        <path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.31z"/>
+      </svg>
+      Sign up with Google
+    </button>
+
+    <div class="divider">or sign up with email</div>
+
+    <form id="signupForm" onsubmit="handleSignUp(event)" novalidate>
+      <div class="field">
+        <label for="signupName">Full name</label>
+        <div class="field-wrap">
+          <span class="field-icon">person</span>
+          <input type="text" id="signupName" placeholder="Your full name" autocomplete="name" required>
+        </div>
+      </div>
+      <div class="field">
+        <label for="signupEmail">Email address</label>
+        <div class="field-wrap">
+          <span class="field-icon">mail</span>
+          <input type="email" id="signupEmail" placeholder="you@example.com" autocomplete="email" required>
+        </div>
+      </div>
+      <div class="field">
+        <label for="signupPassword">Password</label>
+        <div class="field-wrap">
+          <span class="field-icon">lock</span>
+          <input type="password" id="signupPassword" placeholder="Min. 6 characters" autocomplete="new-password" required minlength="6">
+          <button type="button" class="pwd-toggle" onclick="togglePwd('signupPassword', this)" aria-label="Show password">visibility</button>
+        </div>
+      </div>
+      <button type="submit" class="submit-btn" id="signupBtn">
+        <span id="signupBtnText">Create Account</span>
+        <div class="spinner" id="signupSpinner"></div>
+      </button>
+    </form>
+  </div>
+
+  <!-- ── FORGOT PASSWORD PANEL ── -->
+  <div id="forgotPanel">
+    <button onclick="hideForgot()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;color:var(--on-surface-variant);font-size:14px;margin-bottom:20px;font-family:'Work Sans',sans-serif;">
+      <span class="ms" style="font-size:18px;">arrow_back</span> Back to sign in
+    </button>
+    <h2 class="form-title">Reset your password</h2>
+    <p class="form-subtitle">Enter your email and we'll send you a reset link.</p>
+
+    <div class="error-alert" id="forgotError">
+      <span class="ms">error</span>
+      <span id="forgotErrorMsg">Error</span>
+    </div>
+    <div class="success-alert" id="forgotSuccess">
+      <span class="ms">check_circle</span>
+      <span>Reset link sent! Check your inbox.</span>
+    </div>
+
+    <form id="forgotForm" onsubmit="handleForgot(event)" novalidate>
+      <div class="field">
+        <label for="forgotEmail">Email address</label>
+        <div class="field-wrap">
+          <span class="field-icon">mail</span>
+          <input type="email" id="forgotEmail" placeholder="you@example.com" autocomplete="email" required>
+        </div>
+      </div>
+      <button type="submit" class="submit-btn" id="forgotBtn">
+        <span id="forgotBtnText">Send Reset Link</span>
+        <div class="spinner" id="forgotSpinner"></div>
+      </button>
+    </form>
+  </div>
+
+</div><!-- /.auth-panel -->
+
+<script>
+  // ── Firebase config (same as app) ──────────────────────────
+  const FIREBASE_CONFIG = {
+    apiKey:            "AIzaSyDVKDd6r-96ewW3dBBxEmF7VsvONifazBs",
+    authDomain:        "ai-trip-narrative-generator.firebaseapp.com",
+    projectId:         "ai-trip-narrative-generator",
+    storageBucket:     "ai-trip-narrative-generator.firebasestorage.app",
+    messagingSenderId: "70632204810",
+    appId:             "1:70632204810:web:da3e6a8fb1efb9741b8df3",
+    measurementId:     "G-Z1CDCVMX8K",
+  };
+
+  const REDIRECT_URL = '/';   // index.html is at root
+
+  let fbAuth = null;
+
+  try {
+    const app = firebase.initializeApp(FIREBASE_CONFIG);
+    fbAuth = firebase.auth(app);
+    fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+  } catch (e) {
+    console.error('Firebase init error:', e);
+  }
+
+  // ── Check if already signed in ────────────────────────────
+  if (fbAuth) {
+    fbAuth.onAuthStateChanged((user) => {
+      const overlay = document.getElementById('authCheckOverlay');
+      if (user) {
+        // Already signed in — go to app
+        window.location.replace(REDIRECT_URL);
+      } else {
+        // Not signed in — show the login form
+        if (overlay) overlay.style.display = 'none';
+      }
+    });
+  } else {
+    document.getElementById('authCheckOverlay').style.display = 'none';
+  }
+
+  // ── Tab switching ──────────────────────────────────────────
+  function switchTab(tab) {
+    const panels = { signin: 'panelSignIn', signup: 'panelSignUp' };
+    const tabs   = { signin: 'tabSignIn',   signup: 'tabSignUp' };
+
+    Object.keys(panels).forEach(k => {
+      document.getElementById(panels[k]).classList.toggle('active', k === tab);
+      document.getElementById(tabs[k]).classList.toggle('active', k === tab);
+    });
+
+    // Hide forgot panel if switching tabs
+    hideForgot();
+    clearErrors();
+  }
+
+  // ── Toggle password visibility ─────────────────────────────
+  function togglePwd(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const isText = input.type === 'text';
+    input.type = isText ? 'password' : 'text';
+    btn.textContent = isText ? 'visibility' : 'visibility_off';
+  }
+
+  // ── Forgot password panel ──────────────────────────────────
+  function showForgot(e) {
+    if (e) e.preventDefault();
+    document.getElementById('panelSignIn').style.display = 'none';
+    document.querySelector('.tabs').style.display = 'none';
+    document.getElementById('forgotPanel').style.display = 'block';
+    clearErrors();
+  }
+  function hideForgot() {
+    document.getElementById('panelSignIn').style.display = '';
+    document.querySelector('.tabs').style.display = '';
+    document.getElementById('forgotPanel').style.display = 'none';
+    clearErrors();
+  }
+
+  // ── Error helpers ──────────────────────────────────────────
+  function showError(id, msg) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.querySelector('span:last-child').textContent = msg;
+    el.classList.add('show');
+  }
+  function clearErrors() {
+    document.querySelectorAll('.error-alert, .success-alert').forEach(el => el.classList.remove('show'));
+  }
+
+  // ── Loading state ──────────────────────────────────────────
+  function setLoading(btnId, spinnerId, textId, loading, text) {
+    const btn = document.getElementById(btnId);
+    const sp  = document.getElementById(spinnerId);
+    const tx  = document.getElementById(textId);
+    if (!btn) return;
+    btn.disabled = loading;
+    if (sp) sp.style.display = loading ? 'block' : 'none';
+    if (tx) tx.textContent = loading ? 'Please wait…' : text;
+  }
+
+  // ── Friendly error messages ────────────────────────────────
+  function mapError(code) {
+    const m = {
+      'auth/email-already-in-use':   'An account with this email already exists.',
+      'auth/invalid-email':          'Please enter a valid email address.',
+      'auth/weak-password':          'Password must be at least 6 characters.',
+      'auth/user-not-found':         'No account found with this email.',
+      'auth/wrong-password':         'Incorrect password. Please try again.',
+      'auth/too-many-requests':      'Too many attempts. Please wait and try again.',
+      'auth/network-request-failed': 'Network error. Check your connection.',
+      'auth/invalid-credential':     'Invalid email or password. Please try again.',
+      'auth/popup-closed-by-user':   '',   // user cancelled — no error shown
+    };
+    return m[code] || `Sign-in error: ${code}`;
+  }
+
+  // ── Redirect after success ─────────────────────────────────
+  function redirectToApp() {
+    window.location.replace(REDIRECT_URL);
+  }
+
+  // ── Google Sign In ─────────────────────────────────────────
+  async function handleGoogleSignIn() {
+    clearErrors();
+    if (!fbAuth) { showError('signinError', 'Firebase not available.'); return; }
+    try {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      await fbAuth.signInWithPopup(provider);
+      redirectToApp();
+    } catch (e) {
+      if (e.code !== 'auth/popup-closed-by-user') {
+        showError('signinError', mapError(e.code));
+      }
+    }
+  }
+
+  // ── Email Sign In ──────────────────────────────────────────
+  async function handleEmailSignIn(e) {
+    e.preventDefault();
+    clearErrors();
+    if (!fbAuth) { showError('signinError', 'Firebase not available.'); return; }
+
+    const email    = document.getElementById('signinEmail').value.trim();
+    const password = document.getElementById('signinPassword').value;
+
+    if (!email || !password) {
+      showError('signinError', 'Please enter your email and password.'); return;
+    }
+
+    setLoading('signinBtn', 'signinSpinner', 'signinBtnText', true, 'Sign In');
+    try {
+      await fbAuth.signInWithEmailAndPassword(email, password);
+      redirectToApp();
+    } catch (e) {
+      const msg = mapError(e.code);
+      if (msg) showError('signinError', msg);
+    } finally {
+      setLoading('signinBtn', 'signinSpinner', 'signinBtnText', false, 'Sign In');
+    }
+  }
+
+  // ── Email Sign Up ──────────────────────────────────────────
+  async function handleSignUp(e) {
+    e.preventDefault();
+    clearErrors();
+    if (!fbAuth) { showError('signupError', 'Firebase not available.'); return; }
+
+    const name     = document.getElementById('signupName').value.trim();
+    const email    = document.getElementById('signupEmail').value.trim();
+    const password = document.getElementById('signupPassword').value;
+
+    if (!name || !email || !password) {
+      showError('signupError', 'Please fill in all fields.'); return;
+    }
+    if (password.length < 6) {
+      showError('signupError', 'Password must be at least 6 characters.'); return;
+    }
+
+    setLoading('signupBtn', 'signupSpinner', 'signupBtnText', true, 'Create Account');
+    try {
+      const cred = await fbAuth.createUserWithEmailAndPassword(email, password);
+      if (cred.user) {
+        await cred.user.updateProfile({ displayName: name });
+        try { await cred.user.sendEmailVerification(); } catch (_) {}
+      }
+      document.getElementById('signupSuccess').classList.add('show');
+      setTimeout(redirectToApp, 1500);
+    } catch (e) {
+      const msg = mapError(e.code);
+      if (msg) showError('signupError', msg);
+    } finally {
+      setLoading('signupBtn', 'signupSpinner', 'signupBtnText', false, 'Create Account');
+    }
+  }
+
+  // ── Forgot Password ────────────────────────────────────────
+  async function handleForgot(e) {
+    e.preventDefault();
+    clearErrors();
+    if (!fbAuth) return;
+
+    const email = document.getElementById('forgotEmail').value.trim();
+    if (!email) { showError('forgotError', 'Please enter your email address.'); return; }
+
+    setLoading('forgotBtn', 'forgotSpinner', 'forgotBtnText', true, 'Send Reset Link');
+    try {
+      await fbAuth.sendPasswordResetEmail(email);
+      document.getElementById('forgotSuccess').classList.add('show');
+    } catch (e) {
+      showError('forgotError', mapError(e.code));
+    } finally {
+      setLoading('forgotBtn', 'forgotSpinner', 'forgotBtnText', false, 'Send Reset Link');
+    }
+  }
+</script>
+</body>
+</html>
