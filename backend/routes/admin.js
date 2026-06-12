@@ -10,81 +10,100 @@ router.use(verifyToken);
  * GET /api/admin/data
  * Returns paginated raw generations data for the admin data viewer.
  */
-router.get('/data', (req, res) => {
+router.get('/data', async (req, res) => {
   const page   = Math.max(1, parseInt(req.query.page)  || 1);
   const limit  = Math.min(100, parseInt(req.query.limit) || 20);
   const search = (req.query.search || '').trim();
   const tone   = req.query.tone || '';
   const rating = req.query.rating || '';
 
-  const { data, total } = db.getAdminData({ page, limit, search, tone, rating });
-
-  res.json({
-    data,
-    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
-    user: { email: req.user.email, name: req.user.name },
-  });
+  try {
+    const { data, total } = await db.getAdminData({ page, limit, search, tone, rating });
+    res.json({
+      data,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      user: { email: req.user.email, name: req.user.name },
+    });
+  } catch (err) {
+    console.error('[admin] GET /data error:', err);
+    res.status(500).json({ error: 'Failed to fetch admin data.', detail: err.message });
+  }
 });
 
 /**
  * GET /api/admin/data/:id
  * Returns a single full generation record (including AI response + prompt).
  */
-router.get('/data/:id', (req, res) => {
-  const row = db.getGeneration(Number(req.params.id));
-  if (!row) return res.status(404).json({ error: 'Record not found.' });
-  res.json(row);
+router.get('/data/:id', async (req, res) => {
+  try {
+    const row = await db.getGeneration(Number(req.params.id));
+    if (!row) return res.status(404).json({ error: 'Record not found.' });
+    res.json(row);
+  } catch (err) {
+    console.error(`[admin] GET /data/${req.params.id} error:`, err);
+    res.status(500).json({ error: 'Failed to fetch record.', detail: err.message });
+  }
 });
 
 /**
  * DELETE /api/admin/data/:id
- * Deletes a single generation record.
+ * Soft-deletes a single generation record.
  */
-router.delete('/data/:id', (req, res) => {
+router.delete('/data/:id', async (req, res) => {
   const id = Number(req.params.id);
-  const row = db.getGeneration(id);
-  if (!row) return res.status(404).json({ error: 'Record not found.' });
-  db.deleteGeneration(id);
-  res.json({ success: true, deleted: id });
+  try {
+    const row = await db.getGeneration(id);
+    if (!row) return res.status(404).json({ error: 'Record not found.' });
+    await db.deleteGeneration(id);
+    res.json({ success: true, deleted: id });
+  } catch (err) {
+    console.error(`[admin] DELETE /data/${id} error:`, err);
+    res.status(500).json({ error: 'Failed to delete record.', detail: err.message });
+  }
 });
 
 /**
  * GET /api/admin/export
  * Returns all data as a CSV file download.
  */
-router.get('/export', (req, res) => {
-  const rows = db.getAllForExport();
+router.get('/export', async (req, res) => {
+  try {
+    const rows = await db.getAllForExport();
 
-  const headers = [
-    'ID', 'Driver/Staff', 'Route', 'Landmarks', 'Highlights',
-    'Trip Date', 'Vehicle Type', 'Tone', 'Title', 'Rating', 'Comment', 'Created At',
-  ];
+    const headers = [
+      'ID', 'Driver/Staff', 'Route', 'Landmarks', 'Highlights',
+      'Trip Date', 'Vehicle Type', 'Tone', 'Title', 'Rating', 'Comment', 'Created At',
+    ];
 
-  const escape = (val) => {
-    if (val === null || val === undefined) return '';
-    const str = String(val).replace(/"/g, '""');
-    return /[",\n]/.test(str) ? `"${str}"` : str;
-  };
+    const escape = (val) => {
+      if (val === null || val === undefined) return '';
+      const str = String(val).replace(/"/g, '""');
+      return /[",\n]/.test(str) ? `"${str}"` : str;
+    };
 
-  const csvLines = [
-    headers.join(','),
-    ...rows.map((r) =>
-      [
-        r.id, r.driver_name, r.route, r.landmarks, r.highlights,
-        r.trip_date, r.vehicle_type, r.tone, r.title,
-        r.rating, r.comment, r.created_at,
-      ]
-        .map(escape)
-        .join(',')
-    ),
-  ];
+    const csvLines = [
+      headers.join(','),
+      ...rows.map((r) =>
+        [
+          r.id, r.driver_name, r.route, r.landmarks, r.highlights,
+          r.trip_date, r.vehicle_type, r.tone, r.title,
+          r.rating, r.comment, r.created_at,
+        ]
+          .map(escape)
+          .join(',')
+      ),
+    ];
 
-  const csvContent = csvLines.join('\r\n');
-  const filename = `manivtha_generations_${new Date().toISOString().split('T')[0]}.csv`;
+    const csvContent = csvLines.join('\r\n');
+    const filename = `manivtha_generations_${new Date().toISOString().split('T')[0]}.csv`;
 
-  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-  res.send('\uFEFF' + csvContent); // BOM for Excel compatibility
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send('\uFEFF' + csvContent); // BOM for Excel compatibility
+  } catch (err) {
+    console.error('[admin] GET /export error:', err);
+    res.status(500).json({ error: 'Failed to export data.', detail: err.message });
+  }
 });
 
 /**
@@ -95,8 +114,8 @@ router.get('/verify', (req, res) => {
   res.json({
     authenticated: true,
     user: {
-      email: req.user.email,
-      name: req.user.name || req.user.email,
+      email:   req.user.email,
+      name:    req.user.name || req.user.email,
       picture: req.user.picture,
     },
   });

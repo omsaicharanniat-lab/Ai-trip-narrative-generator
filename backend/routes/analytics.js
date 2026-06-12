@@ -6,9 +6,9 @@ const db = require('../db/database');
  * GET /api/analytics
  * Returns aggregated analytics for the dashboard.
  */
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const analytics = db.getAnalytics();
+    const analytics = await db.getAnalytics();
     res.json(analytics);
   } catch (err) {
     console.error('Analytics error:', err);

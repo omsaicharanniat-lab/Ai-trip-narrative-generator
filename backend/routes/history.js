@@ -21,11 +21,11 @@ async function extractVerifiedUserId(req) {
 
 /**
  * GET /api/history
- * Returns paginated list of past generations.
+ * Returns paginated list of past generations from MongoDB.
  * Query params: page (default 1), limit (default 12), search (optional)
  * NOTE: returns both "records" and "data" keys for cross-version compatibility.
  */
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const page   = Math.max(1, parseInt(req.query.page)  || 1);
   const limit  = Math.min(50, parseInt(req.query.limit) || 12);
   const search = (req.query.search || '').trim();
@@ -33,7 +33,7 @@ router.get('/', (req, res) => {
   console.log(`[history] GET / page=${page} limit=${limit} search="${search}"`);
 
   try {
-    const { data, total } = db.getGenerations({ page, limit, search });
+    const { data, total } = await db.getGenerations({ page, limit, search });
     console.log(`[history] Fetched ${data.length} records (total=${total})`);
 
     res.json({
@@ -54,11 +54,11 @@ router.get('/', (req, res) => {
 
 /**
  * GET /api/history/:id
- * Returns a single generation by ID (includes full ai_response).
+ * Returns a single generation by legacyId (includes full ai_response).
  */
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const row = db.getGeneration(Number(req.params.id));
+    const row = await db.getGeneration(Number(req.params.id));
     if (!row) return res.status(404).json({ error: 'Generation not found.' });
     console.log(`[history] GET /${req.params.id} OK`);
     res.json(row);
@@ -70,8 +70,7 @@ router.get('/:id', (req, res) => {
 
 /**
  * DELETE /api/history/:id
- * Soft-deletes a narrative from SQLite (marks as archived — NOT permanently removed).
- * The record is preserved in the database with is_deleted = 1 for future recovery.
+ * Soft-deletes a narrative in MongoDB (marks isDeleted = true — record preserved).
  * Requires: Authorization: Bearer <idToken>
  * Only the owner (user_id matches token uid) may archive.
  */
@@ -90,21 +89,19 @@ router.delete('/:id', async (req, res) => {
 
   try {
     // ── Fetch record and verify ownership ────────────────────────
-    const row = db.getGeneration(recordId);
+    const row = await db.getGeneration(recordId);
     if (!row) {
       return res.status(404).json({ error: 'Narrative not found.' });
     }
 
     // Ownership check: row.user_id must match the authenticated user
-    // (allow null user_id rows only if no other user owns it — legacy data)
     if (row.user_id && row.user_id !== userId) {
       console.warn(`[history] DELETE /${recordId} — forbidden: owner=${row.user_id}, requester=${userId}`);
       return res.status(403).json({ error: 'Forbidden. You do not own this narrative.' });
     }
 
-    // Soft-delete: preserves the record; sets is_deleted = 1
-    db.deleteGeneration(recordId);
-    console.log(`[history] SOFT-DELETE /${recordId} OK — userId=${userId} (record preserved, is_deleted=1)`);
+    await db.deleteGeneration(recordId);
+    console.log(`[history] SOFT-DELETE /${recordId} OK — userId=${userId} (record preserved, isDeleted=true)`);
 
     res.json({ success: true, id: recordId, archived: true });
   } catch (err) {
@@ -131,15 +128,14 @@ router.post('/:id/restore', async (req, res) => {
   }
 
   try {
-    // Fetch without the is_deleted filter (raw query for restore)
-    const row = db.getGeneration(recordId);
+    const row = await db.getGeneration(recordId);
     if (!row) {
       return res.status(404).json({ error: 'Narrative not found or not recoverable.' });
     }
     if (row.user_id && row.user_id !== userId) {
       return res.status(403).json({ error: 'Forbidden. You do not own this narrative.' });
     }
-    db.restoreGeneration(recordId);
+    await db.restoreGeneration(recordId);
     console.log(`[history] RESTORE /${recordId} OK — userId=${userId}`);
     res.json({ success: true, id: recordId, restored: true });
   } catch (err) {

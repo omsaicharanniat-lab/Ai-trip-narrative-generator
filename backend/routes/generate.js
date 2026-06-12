@@ -159,7 +159,7 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    const id = db.insertGeneration({
+    const id = await db.insertGeneration({
       driverName, 
       route: finalRoute,
       startingLocation,
@@ -192,7 +192,7 @@ router.post('/', async (req, res) => {
       createdAt:  new Date().toISOString(),
     });
   } catch (dbErr) {
-    console.error('[generate] SQLite save error:', dbErr);
+    console.error('[generate] MongoDB save error:', dbErr);
     return res.status(500).json({ error: 'Failed to save narrative.', detail: dbErr.message });
   }
 });
