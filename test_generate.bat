@@ -1,1 +1,0 @@
-curl -s -X POST http://localhost:3001/api/generate -H "Content-Type: application/json" -d "{\"driverName\":\"Ravi Kumar\",\"route\":\"Hyderabad to Warangal\",\"landmarks\":\"Ramappa Temple, Warangal Fort\",\"highlights\":\"Beautiful sunrise, misty valleys\",\"tone\":\"Adventurous\",\"vehicleType\":\"SUV\"}"
